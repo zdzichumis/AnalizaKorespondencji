@@ -1,0 +1,397 @@
+---
+title: "Analiza Korespondencji"
+author: "Adam Michalski"
+date: "2023-05-28"
+output: html_document
+---
+
+# Wstęp
+
+W ramach tego projektu przeprowadzona zostanie analiza korespondencji dla danych dotyczących wyników ostatnich wyborów do sejmu w Polsce. Wprowadźmy najpierw pożadane dane do programu i zastąpmy ich braki sygnalizujące brak komisji wyborczych pewnych partii w okręgach wyborczych zerami:
+
+```{r setup, echo=FALSE}
+wyniki_wyborow_okregi <- read.csv("wyniki_gl_na_listy_po_okregach_sejm2023.csv", head = TRUE, sep = ";")
+wyniki_2023_okr <- wyniki_wyborow_okregi[, c(27:38)]
+wyniki_2023_okr[is.na(wyniki_2023_okr)] <- 0
+colnames(wyniki_2023_okr) <- c("BS", "PSL", "Lew", "PIS", "Konf", "KO", "PJJ", "RDiP", "NK", "Ant", "RNP", "MN")
+str(wyniki_2023_okr)
+dane <- as.matrix(wyniki_2023_okr)
+```
+
+Analizować będziemy następujący problem: Czy istnieje i jaką ma postać zależność między okręgiem wyborczym/województwem, a poparciem dla poszczególnych partii politycznych w ostatnich wyborach do sejmu w Polsce. Pobrane dane są już w postaci tabeli kontygencji.
+
+
+# Test niezależności danych
+
+Skłonność do grupowania danych zilustrujemy w oparciu o mapy ciepła:
+
+```{r, echo = TRUE}
+heatmap(dane, scale = "none")
+
+
+heatmap(dane, scale="row")
+
+
+heatmap(dane, scale="col")
+
+```
+
+Odpowiedź na pytanie o niezależność danych uzyskamy w oparciu o test $\chi^2$:
+```{r, echo = TRUE}
+test <- chisq.test(dane)
+test
+```
+
+Skoro odrzuciliśmy hipotezę o niezależności w następnej kolejności spróbujemy ustalić postać zależności między okręgiem wyborczym a poszczególnymi partiami.
+
+# Analiza korespondencji pełnych danych z podziałem na okręgi wyborcze
+
+Na początek stworzymy tabelę korespondencji:
+
+```{r, echo = TRUE}
+n <- sum(dane)
+P <- dane/n
+str(P)
+```
+
+Następnie obliczymy częstości brzegowe zwane w analizie korespondencji masami wierszy i kolumn:
+
+```{r, echo = TRUE}
+masa_w <- rowSums(P)
+masa_w
+masa_k <- colSums(P)
+masa_k
+```
+
+Wyznaczamy dalej teoretyczne częstości łączne, których oczekiwalibyśmy w przypadku całkowitej niezależności:
+
+```{r, echo = TRUE}
+teor <- outer(masa_w, masa_k, "*")
+str(teor)
+```
+
+Na koniec wyznaczymy standaryzowane reszty pearsonowskie niosące informacje o odchyłkach od niezależności danych:
+
+```{r, echo = TRUE}
+E <- (P-teor)/teor^(1/2)
+str(E)
+```
+
+Zauważmy, że otrzymujemy poniżej ręcznie policzoną wartość będącą wynikiem testu niezależności $\chi^2$
+
+```{r, echo = TRUE}
+n*sum(E*E)
+test
+```
+
+Mapy ciepła odchyłek od niezależności wyglądają następująco:
+
+```{r, echo = TRUE}
+heatmap(E*E, scale = "none")
+
+
+heatmap(E*E, scale="row")
+
+
+heatmap(E*E, scale="col")
+```
+
+Na tym etapie pracy z danymi możemy zauważyć, że partie MN(Mniejszość Niemiecka) ANT(Antypartia) oraz RNP(Ruch Naprawy Polski) bardzo wyraźnie odstają od niezależności. Jest to spowodowane faktem, iż wszystkie ich głosy pochodzą z zaledwie jednogo z okręgów wyborczych, co daje jawną postać zależności danych.
+
+# Metody wizualizacji wyników analizy
+
+Trudno zaprezentować dane o odchyłkach od niezależności w innej formie wizualnej od map ciepła, gdyż mamy obecnie do czynienia z aż $41\times12$ wymiarami danych.
+
+Aby jednak tego dokonać zastosujemy dekompozycję SVD badanej macierzy standaryzowanych reszt pearsonowskich $E$, czyli rozkład według wartości osobliwych macierzy kwadratowej $E\cdot E^T$. Skorzystamy z gotowej funkcji svd:
+
+```{r, echo = TRUE}
+S <- svd(E)
+str(S)
+```
+
+Korzystając z powyższej dekompozycji macierzy $E\cdot E^T$ standaryzując współrzędne wierszy i kolumn(poprzez dzielenie ich przez pierwiastki z odpowiednich częstości brzegowych) otrzymujemy następujący wykres zwany mapą percepcji:
+
+```{r, echo = TRUE}
+X <- diag(1/sqrt(masa_w)) %*% S$u 
+Y <- diag(1/sqrt(masa_k)) %*% S$v
+plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
+text(X[,1:2], levels(wyniki_2023_okr$Nr.okręgu), col = "blue")
+text(Y[,1:2], names(wyniki_2023_okr), col = "red")
+```
+
+Do analizy korespondencji istnieje w R gotowa funkcja w pakiecie ca, za której pomocą możemy natychmiastowo otrzymać podobną mapę percepcji. W tym konkretnym przypadku okazuje się jednak, że ręczne stworzenie tego wykresu prowadzi do bardziej czytelnej reprezentacji tych odchyłek, gdyż widoczne są numery okręgów wyborczych oraz jest lepiej dobrana skala.
+
+```{r, echo = TRUE}
+library(ca)
+plot(ca(dane), mass=T)
+```
+
+Oprócz rysowania wykresów oraz informowania o procentowym wkładzie wyświetlanych wymiarów w całość danych funkcja ta potrafi podać dodatkowe informacje dotyczącej analizy takowych danych.
+
+```{r, echo = TRUE}
+ca(dane)
+```
+
+W wynikach pojawia się pojęcie inercji rozumianej jako iloraz wyniku testu $\chi^2$ danych oraz ilości wszystkich obserwacji(w naszym przypadku jest to ilość wszystkich osób o ważnych głosach). Możemy również rozważać inercję dla poszczególnych partii otrzymując bardziej szczegółową informację o udziale poszczególnych wierszy lub kolumn w wyniku testu $\chi^2$.
+
+```{r, echo = TRUE}
+sum(ca(dane)$rowinertia)
+x <- ca(dane)$rowinertia/sum(ca(dane)$rowinertia)
+x
+ca(dane)$rowinertia
+```
+
+Spróbujemy w następnej kolejności przedstawić wykres najważniejszych 3 wymiarów całych danych(tych o największej wariancji):
+
+```{r, echo = TRUE}
+library(rgl)
+plot3d(ca(dane))
+rglwidget()
+```
+
+# Analiza korespondencji danych bez najrzadziej wybieranych partii z podziałem na okręgi wyborcze
+
+W dalszej części analizy korespondencji rozważamy dane bez partii MN(Mniejszość Niemiecka), RNP(Ruch Naprawy Polski), ANT(Antypartia), NK(Normalny Kraj) oraz RDiP(Ruch Dobrobytu i Pokoju), gdyż odstają od pozostałych danych, czyli już dla nich zdołaliśmy ustalić postaci zależności względem okręgu(pojawiają się tylko w kilku okręgach).
+
+```{r, echo = FALSE}
+wyniki_2023_okr <- wyniki_2023_okr[, 1:7]
+str(wyniki_2023_okr)
+dane2 <- dane[, 1:7]
+
+```
+
+Mapy ciepła tych danych są postaci:
+
+```{r, echo = TRUE}
+heatmap(dane2, scale = "none")
+
+
+heatmap(dane2, scale="row")
+
+
+heatmap(dane2, scale="col")
+
+```
+
+Wynikiem testu $\chi^2$ jest liczba:
+
+```{r, echo = TRUE}
+test2 <- chisq.test(dane2)
+test2
+```
+
+Odrzucamy hipotezę o niezależności, więc ponownie możemy przeprowadzić analizę korespondencji w celu szukania postaci tej zależności.
+
+```{r, echo = TRUE}
+n2 <- sum(dane2)
+P2 <- dane2/n2
+str(P2)
+masa_w <- rowSums(P2)
+masa_w
+masa_k <- colSums(P2)
+masa_k
+teor2 <- outer(masa_w, masa_k, "*")
+str(teor2)
+E2 <- (P2-teor2)/teor2^(1/2)
+str(E2)
+```
+
+Mapy ciepła odchyłek od niezależności wyglądają następująco:
+
+```{r, echo = TRUE}
+heatmap(E2*E2, scale = "none")
+
+
+heatmap(E2*E2, scale="row")
+
+
+heatmap(E2*E2, scale="col")
+```
+
+```{r, echo = TRUE}
+S <- svd(E2)
+str(S)
+```
+
+Korzystając z powyższej dekompozycji macierzy $E2\cdot E2^T$ standaryzując współrzędne wierszy i kolumn dostajemy następujący wykres:
+
+```{r, echo = TRUE}
+X <- diag(1/sqrt(masa_w)) %*% S$u 
+Y <- diag(1/sqrt(masa_k)) %*% S$v
+plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
+text(X[,1:2], levels(wyniki_2023_okr$Nr.okręgu), col = "blue")
+text(Y[,1:2], names(wyniki_2023_okr), col = "red")
+```
+
+Wykres w 3D wygląda następująco:
+
+```{r, echo = TRUE}
+library(rgl)
+plot3d(ca(dane2))
+rglwidget()
+```
+
+# Analiza korespondencji pełnych danych z podziałem na województwa
+
+Przeprowadzimy teraz analizę korespondencji dla danych z podziałem na województwa zamiast okręgów.
+
+```{r, echo=FALSE}
+wyniki_wyborow_wojewodztwa <- read.csv("wyniki_gl_na_listy_po_wojewodztwach_sejm2023.csv", head = TRUE, sep = ";")
+wyniki_2023_woj <- wyniki_wyborow_wojewodztwa[, c(27:38)]
+wyniki_2023_woj[is.na(wyniki_2023_woj)] <- 0
+rownames(wyniki_2023_woj) <- c("dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie", "łódzkie", "małopolskie", "mazowieckie", "opolskie", "podkarpackie", "podlaskie", "pomorskie", "śląskie", "świętokrzyskie", "warmińsko-mazurskie", "wielkopolskie", "zachodniopomorskie")
+colnames(wyniki_2023_woj) <- c("BS", "PSL", "Lew", "PIS", "Konf", "KO", "PJJ", "RDiP", "NK", "Ant", "RNP", "MN")
+str(wyniki_2023_woj)
+dane <- as.matrix(wyniki_2023_woj)
+```
+
+Mapy ciepła tych danych są postaci:
+
+```{r, echo = TRUE}
+heatmap(dane, scale = "none")
+
+
+heatmap(dane, scale="row")
+
+
+heatmap(dane, scale="col")
+
+```
+
+Wynikiem testu $\chi^2$ jest liczba:
+```{r, echo = TRUE}
+test2 <- chisq.test(dane)
+test2
+```
+Zatem ponownie możemy przeprowadzić analizę korespondencji
+
+```{r, echo = TRUE}
+n <- sum(dane)
+P <- dane/n
+str(P)
+masa_w <- rowSums(P)
+masa_w
+masa_k <- colSums(P)
+masa_k
+teor <- outer(masa_w, masa_k, "*")
+str(teor)
+E <- (P-teor)/teor^(1/2)
+str(E)
+```
+
+Mapy ciepła odchyłek od niezależności wyglądają następująco:
+
+```{r, echo = TRUE}
+heatmap(E*E, scale = "none")
+
+
+heatmap(E*E, scale="row")
+
+
+heatmap(E*E, scale="col")
+```
+
+```{r, echo = TRUE}
+S <- svd(E)
+str(S)
+```
+
+Korzystając z powyższej dekompozycji macierzy $E\cdot E^T$ standaryzując współrzędne wierszy i kolumn otrzymujemy wykres postaci:
+
+```{r, echo = TRUE}
+X <- diag(1/sqrt(masa_w)) %*% S$u 
+Y <- diag(1/sqrt(masa_k)) %*% S$v
+plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
+text(X[,1:2], c("Dol", "Kuj", "Lbl", "Lbu", "Łód", "Mał", "Maz", "Opo", "Pdk", "Pdl", "Pom", "Ślą", "Świ", "War", "Wie", "Zac"), col = "blue")
+text(Y[,1:2], names(wyniki_2023_woj), col = "red")
+```
+
+```{r, echo = TRUE}
+library(rgl)
+rownames(wyniki_2023_woj) <- NULL
+dane <- as.matrix(wyniki_2023_woj)
+plot3d(ca(dane))
+rglwidget()
+```
+
+# Analiza korespondencji danych bez najrzadziej wybieranych partii z podziałem na województwa
+
+Przeprowadzimy dalej analizę korespondencji bez odstających partii politycznych.
+
+```{r, echo = FALSE}
+rownames(wyniki_2023_woj) <- c("dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie", "łódzkie", "małopolskie", "mazowieckie", "opolskie", "podkarpackie", "podlaskie", "pomorskie", "śląskie", "świętokrzyskie", "warmińsko-mazurskie", "wielkopolskie", "zachodniopomorskie")
+wyniki_2023_woj <- wyniki_2023_woj[, 1:7]
+str(wyniki_2023_woj)
+dane2 <- dane[, 1:7]
+```
+
+Mapy ciepła tych danych są postaci:
+
+```{r, echo = TRUE}
+heatmap(dane2, scale = "none")
+
+
+heatmap(dane2, scale="row")
+
+
+heatmap(dane2, scale="col")
+
+```
+
+Wynikiem testu $\chi^2$ jest liczba:
+
+```{r, echo = TRUE}
+test2 <- chisq.test(dane2)
+test2
+```
+
+Odrzucamy hipotezę o niezależności, więc ponownie możemy przeprowadzić analizę korespondencji w celu szukania postaci tej zależności.
+
+```{r, echo = TRUE}
+n2 <- sum(dane2)
+P2 <- dane2/n2
+str(P2)
+masa_w <- rowSums(P2)
+masa_w
+masa_k <- colSums(P2)
+masa_k
+teor2 <- outer(masa_w, masa_k, "*")
+str(teor)
+E2 <- (P2-teor2)/teor2^(1/2)
+str(E2)
+```
+
+Mapy ciepła odchyłek od niezależności wyglądają następująco:
+
+```{r, echo = TRUE}
+heatmap(E2*E2, scale = "none")
+
+
+heatmap(E2*E2, scale="row")
+
+
+heatmap(E2*E2, scale="col")
+```
+
+```{r, echo = TRUE}
+S <- svd(E2)
+str(S)
+```
+
+Korzystając z powyższej dekompozycji macierzy $E2\cdot E2^T$ standaryzując współrzędne wierszy i kolumn otrzymujemy wykres postaci:
+
+```{r, echo = TRUE}
+X <- diag(1/sqrt(masa_w)) %*% S$u 
+Y <- diag(1/sqrt(masa_k)) %*% S$v
+plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
+text(X[,1:2], c("Dol", "Kuj", "Lbl", "Lbu", "Łód", "Mał", "Maz", "Opo", "Pdk", "Pdl", "Pom", "Ślą", "Świ", "War", "Wie", "Zac"), col = "blue")
+text(Y[,1:2], colnames(wyniki_2023_woj), col = "red")
+```
+
+```{r, echo = TRUE}
+library(rgl)
+rownames(wyniki_2023_woj) <- NULL
+dane2 <- as.matrix(wyniki_2023_woj)[, 1:7]
+plot3d(ca(dane2))
+rglwidget()
+```
