@@ -119,6 +119,8 @@ text(X[,1:2], levels(wyniki_2023_okr$Nr.okręgu), col = "blue")
 text(Y[,1:2], names(wyniki_2023_okr), col = "red")
 ```
 
+Na podstawie wykresu jesteśmy w stanie odczytać iż partie MN(Mniejszość Niemiecka) RNP(Ruch naprawy Polski), ANT(Antypartia), NK(Normalny Kraj), RDiP(Ruch Dobrobytu i Pokoju) stanowczo odstają od pozostałych danych wraz z okręgiem 21(woj. Opolskie). Pozostałe dane są bardzo ściśle zgrupowane, co nie pozwala na wnioskowanie o zależności między nimi.
+
 Do analizy korespondencji istnieje w R gotowa funkcja w pakiecie ca, za której pomocą możemy natychmiastowo otrzymać podobną mapę percepcji. W tym konkretnym przypadku okazuje się jednak, że ręczne stworzenie tego wykresu prowadzi do bardziej czytelnej reprezentacji tych odchyłek, gdyż widoczne są numery okręgów wyborczych oraz jest lepiej dobrana skala.
 
 ```{r, echo = TRUE}
@@ -231,6 +233,8 @@ plot3d(ca(dane2))
 rglwidget()
 ```
 
+Na podstawie powyższych wykresów jesteśmy w stanie odczytać, iż 32 okrąg wyborczy(w województwie śląskim) wykazuje szczególne poparcie dla Lewicy, okręgi 19(Warszawa) i 39(Poznań) wykazują poparcie przede wszystkim dla Koalicji Obywatelskiej. Podobnie możemy odczytać resztę zależności.
+
 # Analiza korespondencji pełnych danych z podziałem na województwa
 
 Przeprowadzimy teraz analizę korespondencji dla danych z podziałem na województwa zamiast okręgów.
@@ -320,9 +324,8 @@ Przeprowadzimy dalej analizę korespondencji bez odstających partii politycznyc
 
 ```{r, echo = FALSE}
 rownames(wyniki_2023_woj) <- c("dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie", "łódzkie", "małopolskie", "mazowieckie", "opolskie", "podkarpackie", "podlaskie", "pomorskie", "śląskie", "świętokrzyskie", "warmińsko-mazurskie", "wielkopolskie", "zachodniopomorskie")
-wyniki_2023_woj <- wyniki_2023_woj[, 1:7]
-str(wyniki_2023_woj)
-dane2 <- dane[, 1:7]
+str(wyniki_2023_woj[, 1:7])
+dane2 <- as.matrix(wyniki_2023_woj[, 1:7])
 ```
 
 Mapy ciepła tych danych są postaci:
@@ -345,7 +348,7 @@ test2 <- chisq.test(dane2)
 test2
 ```
 
-Odrzucamy hipotezę o niezależności, więc ponownie możemy przeprowadzić analizę korespondencji w celu szukania postaci tej zależności.
+Odrzucamy hipotezę o niezależności, więc ponownie możemy przeprowadzić analizę korespondencji w celu szukania postaci szukanej zależności.
 
 ```{r, echo = TRUE}
 n2 <- sum(dane2)
@@ -385,7 +388,7 @@ X <- diag(1/sqrt(masa_w)) %*% S$u
 Y <- diag(1/sqrt(masa_k)) %*% S$v
 plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
 text(X[,1:2], c("Dol", "Kuj", "Lbl", "Lbu", "Łód", "Mał", "Maz", "Opo", "Pdk", "Pdl", "Pom", "Ślą", "Świ", "War", "Wie", "Zac"), col = "blue")
-text(Y[,1:2], colnames(wyniki_2023_woj), col = "red")
+text(Y[,1:2], colnames(wyniki_2023_woj[, 1:7]), col = "red")
 ```
 
 ```{r, echo = TRUE}
