@@ -102,7 +102,7 @@ Na tym etapie pracy z danymi możemy zauważyć, że partie MN(Mniejszość Niem
 
 Trudno zaprezentować dane o odchyłkach od niezależności w innej formie wizualnej od map ciepła, gdyż mamy obecnie do czynienia z aż $41\times12$ wymiarami danych.
 
-Aby jednak tego dokonać zastosujemy dekompozycję SVD badanej macierzy standaryzowanych reszt pearsonowskich $E$. Metoda ta stanowi uogólnienie diagonalizacji na macierze niekwadratowe takie, jak badana macierz $E$ wymiarów $41\times 12$. Dekompozycja ta polega na znajdowaniu wartości własnych macierzy $E\cdot E^T$ ( lub $E^T\cdot E$, gdyż wszystkie niezerowe wartości własne macierzy) takich, że $$E=U\cdot A\cdot V^T,$$ Skorzystamy do tego celu z gotowej funkcji svd:
+Aby jednak tego dokonać zastosujemy dekompozycję SVD badanej macierzy standaryzowanych reszt pearsonowskich $E$. Metoda ta stanowi uogólnienie diagonalizacji na macierze niekwadratowe takie, jak badana macierz $E$ wymiarów $41\times 12$. Dekompozycja ta polega na znajdowaniu wartości osobliwych, czyli dodatnich pierwiastków wartości własnych macierzy powstałej z pomnożenia macierzy $E$ przez jej transpozycję w dowolnej kolejności (niezerowe wartości własne macierzy $E\cdot E^T$ i $E^T\cdot E$ są równe). Wektory osobliwe, czyli wektory własne pochodzące od poszczególnych wartości własnych macierzy $E\cdot E^T$ stanowią wówczas nowe współrzędne, do których ograniczając się jesteśmy w stanie. Skorzystamy do tego celu z dostępnej w R funkcji svd:
 
 ```{r, echo = TRUE}
 S <- svd(E)
@@ -112,7 +112,7 @@ str(S)
 Korzystając z powyższej dekompozycji macierzy $E\cdot E^T$ standaryzując współrzędne wierszy i kolumn(poprzez dzielenie ich przez pierwiastki z odpowiednich częstości brzegowych) otrzymujemy następujący wykres zwany mapą percepcji:
 
 ```{r, echo = TRUE}
-X <- diag(1/sqrt(masa_w)) %*% S$u 
+X <- diag(1/sqrt(masa_w)) %*% S$u
 Y <- diag(1/sqrt(masa_k)) %*% S$v
 plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
 text(X[,1:2], levels(wyniki_2023_okr$Nr.okręgu), col = "blue")
