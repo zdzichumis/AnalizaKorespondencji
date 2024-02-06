@@ -299,7 +299,7 @@ S <- svd(E3)
 str(S)
 ```
 
-Korzystając z powyższej dekompozycji macierzy $E3\cdot E2^T$ standaryzując współrzędne wierszy i kolumn dostajemy następujący wykres:
+Korzystając z powyższej dekompozycji macierzy $E3\cdot E3^T$ standaryzując współrzędne wierszy i kolumn dostajemy następujący wykres:
 
 ```{r, echo = TRUE}
 X <- diag(1/sqrt(masa_w)) %*% S$u 
@@ -317,7 +317,91 @@ plot3d(ca(dane3))
 rglwidget()
 ```
 
-Na podstawie tych wykresów jesteśmy w stanie odczytać, iż partia PJJ (Polska Jest Jedyna) zdaje się odstawać okrąg wyborczy(w województwie śląskim) wykazuje szczególne poparcie dla Lewicy, okręgi 19(Warszawa) i 39(Poznań) wykazują poparcie przede wszystkim dla Koalicji Obywatelskiej. Podobnie możemy odczytać resztę zależności.
+Na podstawie tych wykresów jesteśmy w stanie odczytać, iż partia PJJ (Polska Jest Jedyna) zdaje się znacząco odstawać od reszty elementów wykresu oraz okrąg wyborczy 14 (w skład którego wchdzą ) wykazuje szczególne poparcie dla Lewicy. W dalszej kolejności pominiemy więc partię PJJ.
+
+# Końcowa analiza korespondencji z podziałem na okręgi wyborcze
+
+W następnej kolejności rozważać będziemy dane bez odstających partii oraz bez okręgu 32 leżącego w województwie śląskim, które na podstawie dotychczasowej analizy znacząco wyróżnia się poparciem dla Lewicy.
+
+```{r, echo = FALSE}
+wyniki_2023_okr <- wyniki_2023_okr[-c(32)]
+str(wyniki_2023_okr)
+dane3 <- dane2[-c(32), ]
+str(dane3)
+```
+
+Mapy ciepła tych danych są postaci:
+
+```{r, echo = TRUE}
+heatmap(dane3, scale = "none")
+
+
+heatmap(dane3, scale="row")
+
+
+heatmap(dane3, scale="col")
+
+```
+
+Wynikiem testu $\chi^2$ jest liczba:
+
+```{r, echo = TRUE}
+test3 <- chisq.test(dane3)
+test3
+```
+
+Odrzucamy hipotezę o niezależności, więc ponownie możemy przeprowadzić analizę korespondencji w celu szukania postaci tej zależności.
+
+```{r, echo = TRUE}
+n3 <- sum(dane3)
+P3 <- dane3/n3
+str(P3)
+masa_w <- rowSums(P3)
+masa_w
+masa_k <- colSums(P3)
+masa_k
+teor3 <- outer(masa_w, masa_k, "*")
+str(teor3)
+E3 <- (P3-teor3)/teor3^(1/2)
+str(E3)
+```
+
+Mapy ciepła odchyłek od niezależności wyglądają następująco:
+
+```{r, echo = TRUE}
+heatmap(E3*E3, scale = "none")
+
+
+heatmap(E3*E3, scale="row")
+
+
+heatmap(E3*E3, scale="col")
+```
+
+```{r, echo = TRUE}
+S <- svd(E3)
+str(S)
+```
+
+Korzystając z powyższej dekompozycji macierzy $E3\cdot E3^T$ standaryzując współrzędne wierszy i kolumn dostajemy następujący wykres:
+
+```{r, echo = TRUE}
+X <- diag(1/sqrt(masa_w)) %*% S$u 
+Y <- diag(1/sqrt(masa_k)) %*% S$v
+plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
+text(X[,1:2], levels(wyniki_2023_okr$Nr.okręgu), col = "blue")
+text(Y[,1:2], names(wyniki_2023_okr), col = "red")
+```
+
+Wykres w 3D wygląda następująco:
+
+```{r, echo = TRUE}
+library(rgl)
+plot3d(ca(dane3))
+rglwidget()
+```
+
+Na podstawie tych wykresów jesteśmy w stanie odczytać, iż partia PJJ (Polska Jest Jedyna) zdaje się znacząco odstawać od reszty elementów wykresu oraz okrąg wyborczy 14 (w województwie śląskim) wykazuje szczególne poparcie dla Lewicy, okręgi 19(Warszawa) i 39(Poznań) wykazują poparcie przede wszystkim dla Koalicji Obywatelskiej. Podobnie możemy odczytać resztę zależności.
 
 # Analiza korespondencji pełnych danych z podziałem na województwa
 
