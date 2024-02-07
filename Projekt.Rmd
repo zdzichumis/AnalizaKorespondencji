@@ -108,7 +108,7 @@ Na tym etapie pracy z danymi możemy zauważyć, że partie MN(Mniejszość Niem
 
 Trudno zaprezentować dane o odchyłkach od niezależności w innej formie wizualnej od map ciepła, gdyż mamy obecnie do czynienia z aż $41\times12$ wymiarami danych.
 
-Aby jednak tego dokonać zastosujemy dekompozycję SVD badanej macierzy standaryzowanych reszt pearsonowskich $E$. Metoda ta stanowi uogólnienie diagonalizacji na macierze niekwadratowe takie, jak badana macierz $E$ wymiarów $41\times 12$. Dekompozycja ta polega na znajdowaniu wartości osobliwych, czyli dodatnich pierwiastków wartości własnych macierzy powstałej z pomnożenia macierzy $E$ przez jej transpozycję w dowolnej kolejności (niezerowe wartości własne macierzy $E\cdot E^T$ i $E^T\cdot E$ są równe). Wektory osobliwe, czyli wektory własne pochodzące od poszczególnych wartości własnych macierzy $E\cdot E^T$ wyznaczają bazę przestrzeni operatorów liniowych najlepiej aproksymujących operator liniowy o macierzy $E$, dzięki czemu możemy przy użyciu dwóch wektorów osobliwych pochodzących od dwóch najwięszkych wartości osobliwych możemy ograniczyć się do rozważania tylko 2 wymiarów, które można przedstawić na wykresie zachowując jak najwięcej informacji o całych danych. Skorzystamy do tego celu z dostępnej w R funkcji svd:
+Aby jednak tego dokonać zastosujemy dekompozycję SVD badanej macierzy standaryzowanych reszt pearsonowskich $E$. Metoda ta stanowi uogólnienie diagonalizacji na macierze niekwadratowe takie, jak badana macierz $E$ wymiarów $41\times 12$. Dekompozycja ta polega na znajdowaniu wartości osobliwych, czyli dodatnich pierwiastków wartości własnych macierzy powstałej z pomnożenia macierzy $E$ przez jej transpozycję w dowolnej kolejności ( niezerowe wartości własne macierzy $E\cdot E^T$ i $E^T\cdot E$ okazują się być zawsze równe). Wektory osobliwe, czyli wektory własne pochodzące od poszczególnych wartości własnych macierzy $E\cdot E^T$ wyznaczają bazę przestrzeni operatorów liniowych najlepiej aproksymujących operator liniowy o macierzy $E$. Korzystając z tego faktu możemy ograniczając się do dwóch wektorów osobliwych pochodzących od dwóch najwięszkych wartości osobliwych sprowadzić badanie danych do tylko 2 wymiarów, które można przedstawić na wykresie zachowując jak najwięcej informacji o całych danych. Skorzystamy do tego celu z dostępnej w R funkcji svd:
 
 ```{r, echo = TRUE}
 S <- svd(E)
@@ -325,15 +325,15 @@ rglwidget()
 
 Na podstawie tych wykresów jesteśmy w stanie odczytać, iż partia PJJ (Polska Jest Jedyna) zdaje się znacząco odstawać od reszty elementów wykresu oraz okrąg wyborczy 14 (w skład którego wchodzą powiaty gorlicki, limanowski, nowosądecki, nowotarski i tatrzański wraz z miasto Nowy Sącz ) wykazuje szczególne poparcie dla Lewicy. W dalszej kolejności pominiemy więc partię PJJ.
 
-# Końcowa analiza korespondencji z podziałem na okręgi wyborcze
+# Ostateczny wynik Analizy korespondencji części danych z podziałem na okręgi wyborcze
 
 W następnej kolejności rozważać będziemy dane bez odstających partii oraz bez okręgu 32 leżącego w województwie śląskim, które na podstawie dotychczasowej analizy znacząco wyróżnia się poparciem dla Lewicy.
 
-```{r, echo = FALSE}
+```{r, echo = TRUE}
 wyniki_2023_okr4 <- wyniki_2023_okr3[, -c(7)]
 str(wyniki_2023_okr4)
 dane4 <- dane3[, -c(7)]
-str(dane3)
+str(dane4)
 ```
 
 Mapy ciepła tych danych są postaci:
@@ -389,7 +389,7 @@ S <- svd(E4)
 str(S)
 ```
 
-Korzystając z powyższej dekompozycji macierzy $E3\cdot E3^T$ standaryzując współrzędne wierszy i kolumn dostajemy następujący wykres:
+Korzystając z powyższej dekompozycji macierzy $E4\cdot E4^T$ standaryzując współrzędne wierszy i kolumn dostajemy następujący wykres:
 
 ```{r, echo = TRUE}
 X <- diag(1/sqrt(masa_w)) %*% S$u 
@@ -403,17 +403,17 @@ Wykres w 3D wygląda następująco:
 
 ```{r, echo = TRUE}
 library(rgl)
-plot3d(ca(dane3))
+plot3d(ca(dane4))
 rglwidget()
 ```
 
-Na podstawie tych wykresów jesteśmy w stanie odczytać, iż partia PJJ (Polska Jest Jedyna) zdaje się znacząco odstawać od reszty elementów wykresu oraz okrąg wyborczy 14 (w województwie śląskim) wykazuje szczególne poparcie dla Lewicy, okręgi 19(Warszawa) i 39(Poznań) wykazują poparcie przede wszystkim dla Koalicji Obywatelskiej. Podobnie możemy odczytać resztę zależności.
+Wykres ten pozwala na zauważenie chmury okręgów, których głosy są zdominowane przez PIS, czyli głównie 32, 17 i 10 oraz okręgi na lewo od PISu. Okręgi głosujące na KO zdają się dużo mniej równomierne, zaś okręgi popierające Konfederację zdają się w porównywalnym stopniu wykazywać poparciem dla PIS jak i KO ( rzeczywiście np. z okrągu 27 na wykresie bliskiego Konfederacji na PIS oddano 163506 głosów, zaś na KO 127677 głosów i podobnie w okręgu 35 126432 głosów na PIS i 129339 głosów na KO). Resztę zależności jesteśmy w stanie dość sprawnie odczytać analizując dokładniej ten wykres.
 
 # Analiza korespondencji pełnych danych z podziałem na województwa
 
 Przeprowadzimy teraz analizę korespondencji dla danych z podziałem na województwa zamiast okręgów.
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 wyniki_wyborow_wojewodztwa <- read.csv("wyniki_gl_na_listy_po_wojewodztwach_sejm2023.csv", head = TRUE, sep = ";")
 wyniki_2023_woj <- wyniki_wyborow_wojewodztwa[, c(27:38)]
 wyniki_2023_woj[is.na(wyniki_2023_woj)] <- 0
@@ -421,6 +421,7 @@ rownames(wyniki_2023_woj) <- c("dolnośląskie", "kujawsko-pomorskie", "lubelski
 colnames(wyniki_2023_woj) <- c("BS", "PSL", "Lew", "PIS", "Konf", "KO", "PJJ", "RDiP", "NK", "Ant", "RNP", "MN")
 str(wyniki_2023_woj)
 dane <- as.matrix(wyniki_2023_woj)
+str(dane)
 ```
 
 Mapy ciepła tych danych są postaci:
@@ -496,7 +497,7 @@ rglwidget()
 
 Przeprowadzimy dalej analizę korespondencji bez odstających partii politycznych tych samych, co w podziale na okręgi.
 
-```{r, echo = FALSE}
+```{r, echo = TRUE}
 rownames(wyniki_2023_woj) <- c("dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie", "łódzkie", "małopolskie", "mazowieckie", "opolskie", "podkarpackie", "podlaskie", "pomorskie", "śląskie", "świętokrzyskie", "warmińsko-mazurskie", "wielkopolskie", "zachodniopomorskie")
 str(wyniki_2023_woj[, 1:7])
 dane2 <- as.matrix(wyniki_2023_woj[, 1:7])
@@ -572,3 +573,5 @@ dane2 <- as.matrix(wyniki_2023_woj)[, 1:7]
 plot3d(ca(dane2))
 rglwidget()
 ```
+
+Z wykresu tego jesteśmy już w stanie jawnie odczytać zależności występujące w badanych danych.
