@@ -5,17 +5,23 @@ date: "2023-05-28"
 output: html_document
 ---
 
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
 # Wstęp
 
 W ramach tego projektu przeprowadzona zostanie analiza korespondencji dla danych dotyczących wyników ostatnich wyborów do sejmu w Polsce. Wprowadźmy najpierw pożadane dane do programu i zastąpmy ich braki sygnalizujące brak komisji wyborczych pewnych partii w okręgach wyborczych zerami:
 
-```{r setup, echo=FALSE}
+```{r, echo=TRUE}
 wyniki_wyborow_okregi <- read.csv("wyniki_gl_na_listy_po_okregach_sejm2023.csv", head = TRUE, sep = ";")
 wyniki_2023_okr <- wyniki_wyborow_okregi[, c(27:38)]
 wyniki_2023_okr[is.na(wyniki_2023_okr)] <- 0
 colnames(wyniki_2023_okr) <- c("BS", "PSL", "Lew", "PIS", "Konf", "KO", "PJJ", "RDiP", "NK", "Ant", "RNP", "MN")
+rownames(wyniki_2023_okr) <- 1:41
 str(wyniki_2023_okr)
 dane <- as.matrix(wyniki_2023_okr)
+str(dane)
 ```
 
 Analizować będziemy następujący problem: Czy istnieje i jaką ma postać zależność między okręgiem wyborczym/województwem, a poparciem dla poszczególnych partii politycznych w ostatnich wyborach do sejmu w Polsce. Pobrane dane są już w postaci tabeli kontygencji.
@@ -102,7 +108,7 @@ Na tym etapie pracy z danymi możemy zauważyć, że partie MN(Mniejszość Niem
 
 Trudno zaprezentować dane o odchyłkach od niezależności w innej formie wizualnej od map ciepła, gdyż mamy obecnie do czynienia z aż $41\times12$ wymiarami danych.
 
-Aby jednak tego dokonać zastosujemy dekompozycję SVD badanej macierzy standaryzowanych reszt pearsonowskich $E$. Metoda ta stanowi uogólnienie diagonalizacji na macierze niekwadratowe takie, jak badana macierz $E$ wymiarów $41\times 12$. Dekompozycja ta polega na znajdowaniu wartości osobliwych, czyli dodatnich pierwiastków wartości własnych macierzy powstałej z pomnożenia macierzy $E$ przez jej transpozycję w dowolnej kolejności (niezerowe wartości własne macierzy $E\cdot E^T$ i $E^T\cdot E$ są równe). Wektory osobliwe, czyli wektory własne pochodzące od poszczególnych wartości własnych macierzy $E\cdot E^T$ wyznaczają bazy przestrzeni operatorów liniowych najlepiej aproksymujących operator liniowy o macierzy $E$, dzięki czemu możemy przy ich użyciu ograniczyć się do rozważania tylko kilku wymiarów tracąc jak najmniej informacji o całych danych. Skorzystamy do tego celu z dostępnej w R funkcji svd:
+Aby jednak tego dokonać zastosujemy dekompozycję SVD badanej macierzy standaryzowanych reszt pearsonowskich $E$. Metoda ta stanowi uogólnienie diagonalizacji na macierze niekwadratowe takie, jak badana macierz $E$ wymiarów $41\times 12$. Dekompozycja ta polega na znajdowaniu wartości osobliwych, czyli dodatnich pierwiastków wartości własnych macierzy powstałej z pomnożenia macierzy $E$ przez jej transpozycję w dowolnej kolejności (niezerowe wartości własne macierzy $E\cdot E^T$ i $E^T\cdot E$ są równe). Wektory osobliwe, czyli wektory własne pochodzące od poszczególnych wartości własnych macierzy $E\cdot E^T$ wyznaczają bazę przestrzeni operatorów liniowych najlepiej aproksymujących operator liniowy o macierzy $E$, dzięki czemu możemy przy użyciu dwóch wektorów osobliwych pochodzących od dwóch najwięszkych wartości osobliwych możemy ograniczyć się do rozważania tylko 2 wymiarów, które można przedstawić na wykresie zachowując jak najwięcej informacji o całych danych. Skorzystamy do tego celu z dostępnej w R funkcji svd:
 
 ```{r, echo = TRUE}
 S <- svd(E)
@@ -155,9 +161,9 @@ rglwidget()
 
 W dalszej części analizy korespondencji rozważamy dane bez partii MN(Mniejszość Niemiecka), RNP(Ruch Naprawy Polski), ANT(Antypartia), NK(Normalny Kraj) oraz RDiP(Ruch Dobrobytu i Pokoju), gdyż odstają od pozostałych danych, czyli już dla nich zdołaliśmy ustalić postaci zależności względem okręgu(pojawiają się tylko w kilku okręgach).
 
-```{r, echo = FALSE}
-wyniki_2023_okr <- wyniki_2023_okr[, 1:7]
-str(wyniki_2023_okr)
+```{r, echo = TRUE}
+wyniki_2023_okr2 <- wyniki_2023_okr[, 1:7]
+str(wyniki_2023_okr2)
 dane2 <- dane[, 1:7]
 str(dane2)
 ```
@@ -221,8 +227,8 @@ Korzystając z powyższej dekompozycji macierzy $E2\cdot E2^T$ standaryzując ws
 X <- diag(1/sqrt(masa_w)) %*% S$u 
 Y <- diag(1/sqrt(masa_k)) %*% S$v
 plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
-text(X[,1:2], levels(wyniki_2023_okr$Nr.okręgu), col = "blue")
-text(Y[,1:2], names(wyniki_2023_okr), col = "red")
+text(X[,1:2], levels(wyniki_2023_okr2$Nr.okręgu), col = "blue")
+text(Y[,1:2], names(wyniki_2023_okr2), col = "red")
 ```
 
 Wykres w 3D wygląda następująco:
@@ -239,9 +245,9 @@ Na podstawie powyższych wykresów jesteśmy w stanie odczytać, iż 32 okrąg w
 
 W następnej kolejności rozważać będziemy dane bez odstających partii oraz bez okręgu 32 leżącego w województwie śląskim, które na podstawie dotychczasowej analizy znacząco wyróżnia się poparciem dla Lewicy.
 
-```{r, echo = FALSE}
-wyniki_2023_okr <- wyniki_2023_okr[-c(32)]
-str(wyniki_2023_okr)
+```{r, echo = TRUE}
+wyniki_2023_okr3 <- wyniki_2023_okr2[-c(32), ]
+str(wyniki_2023_okr3)
 dane3 <- dane2[-c(32), ]
 str(dane3)
 ```
@@ -305,8 +311,8 @@ Korzystając z powyższej dekompozycji macierzy $E3\cdot E3^T$ standaryzując ws
 X <- diag(1/sqrt(masa_w)) %*% S$u 
 Y <- diag(1/sqrt(masa_k)) %*% S$v
 plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
-text(X[,1:2], levels(wyniki_2023_okr$Nr.okręgu), col = "blue")
-text(Y[,1:2], names(wyniki_2023_okr), col = "red")
+text(X[,1:2], levels(wyniki_2023_okr3$Nr.okręgu), col = "blue")
+text(Y[,1:2], names(wyniki_2023_okr3), col = "red")
 ```
 
 Wykres w 3D wygląda następująco:
@@ -317,69 +323,69 @@ plot3d(ca(dane3))
 rglwidget()
 ```
 
-Na podstawie tych wykresów jesteśmy w stanie odczytać, iż partia PJJ (Polska Jest Jedyna) zdaje się znacząco odstawać od reszty elementów wykresu oraz okrąg wyborczy 14 (w skład którego wchdzą ) wykazuje szczególne poparcie dla Lewicy. W dalszej kolejności pominiemy więc partię PJJ.
+Na podstawie tych wykresów jesteśmy w stanie odczytać, iż partia PJJ (Polska Jest Jedyna) zdaje się znacząco odstawać od reszty elementów wykresu oraz okrąg wyborczy 14 (w skład którego wchodzą powiaty gorlicki, limanowski, nowosądecki, nowotarski i tatrzański wraz z miasto Nowy Sącz ) wykazuje szczególne poparcie dla Lewicy. W dalszej kolejności pominiemy więc partię PJJ.
 
 # Końcowa analiza korespondencji z podziałem na okręgi wyborcze
 
 W następnej kolejności rozważać będziemy dane bez odstających partii oraz bez okręgu 32 leżącego w województwie śląskim, które na podstawie dotychczasowej analizy znacząco wyróżnia się poparciem dla Lewicy.
 
 ```{r, echo = FALSE}
-wyniki_2023_okr <- wyniki_2023_okr[-c(32)]
-str(wyniki_2023_okr)
-dane3 <- dane2[-c(32), ]
+wyniki_2023_okr4 <- wyniki_2023_okr3[, -c(7)]
+str(wyniki_2023_okr4)
+dane4 <- dane3[, -c(7)]
 str(dane3)
 ```
 
 Mapy ciepła tych danych są postaci:
 
 ```{r, echo = TRUE}
-heatmap(dane3, scale = "none")
+heatmap(dane4, scale = "none")
 
 
-heatmap(dane3, scale="row")
+heatmap(dane4, scale="row")
 
 
-heatmap(dane3, scale="col")
+heatmap(dane4, scale="col")
 
 ```
 
 Wynikiem testu $\chi^2$ jest liczba:
 
 ```{r, echo = TRUE}
-test3 <- chisq.test(dane3)
-test3
+test4 <- chisq.test(dane4)
+test4
 ```
 
 Odrzucamy hipotezę o niezależności, więc ponownie możemy przeprowadzić analizę korespondencji w celu szukania postaci tej zależności.
 
 ```{r, echo = TRUE}
-n3 <- sum(dane3)
-P3 <- dane3/n3
+n4 <- sum(dane4)
+P4 <- dane4/n4
 str(P3)
-masa_w <- rowSums(P3)
+masa_w <- rowSums(P4)
 masa_w
-masa_k <- colSums(P3)
+masa_k <- colSums(P4)
 masa_k
-teor3 <- outer(masa_w, masa_k, "*")
-str(teor3)
-E3 <- (P3-teor3)/teor3^(1/2)
-str(E3)
+teor4 <- outer(masa_w, masa_k, "*")
+str(teor4)
+E4 <- (P4-teor4)/teor4^(1/2)
+str(E4)
 ```
 
 Mapy ciepła odchyłek od niezależności wyglądają następująco:
 
 ```{r, echo = TRUE}
-heatmap(E3*E3, scale = "none")
+heatmap(E4*E4, scale = "none")
 
 
-heatmap(E3*E3, scale="row")
+heatmap(E4*E4, scale="row")
 
 
-heatmap(E3*E3, scale="col")
+heatmap(E4*E4, scale="col")
 ```
 
 ```{r, echo = TRUE}
-S <- svd(E3)
+S <- svd(E4)
 str(S)
 ```
 
@@ -389,8 +395,8 @@ Korzystając z powyższej dekompozycji macierzy $E3\cdot E3^T$ standaryzując ws
 X <- diag(1/sqrt(masa_w)) %*% S$u 
 Y <- diag(1/sqrt(masa_k)) %*% S$v
 plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "")
-text(X[,1:2], levels(wyniki_2023_okr$Nr.okręgu), col = "blue")
-text(Y[,1:2], names(wyniki_2023_okr), col = "red")
+text(X[,1:2], levels(wyniki_2023_okr4$Nr.okręgu), col = "blue")
+text(Y[,1:2], names(wyniki_2023_okr4), col = "red")
 ```
 
 Wykres w 3D wygląda następująco:
